@@ -31,41 +31,44 @@ sudo chmod +x /usr/local/bin/check_lid.sh
 ## 2. Configurazione PAM (Sudo)
 Modifica il file di configurazione di sudo per inserire il controllo prima della richiesta dell'impronta.
 
-code
-Bash
+
+```bash
 sudo nano /etc/pam.d/sudo
+```
 Aggiungi la riga pam_exec.so sopra pam_fprintd.so:
-code
+```bash
 Text
 #%PAM-1.0
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
 auth include system-auth
-...
-3. Configurazione PAM (System Auth)
+```
+## 3. Configurazione PAM (System Auth)
 Modifica il file globale per applicare la logica al login grafico e al lock screen.
-code
-Bash
+```bash
 sudo nano /etc/pam.d/system-auth
+```
 Inserisci il controllo all'inizio della sezione auth:
-code
-Text
+
+``` bash
 #%PAM-1.0
 auth required pam_faillock.so preauth
-
+```
 # Controllo Docked Mode
+```bash
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
 
 auth [success=1 default=bad] pam_unix.so try_first_pass nullok
-...
-4. Comandi di Verifica e Debug
+```
+## 4. Comandi di Verifica e Debug
 Controllare lo stato hardware del Lid:
-code
-Bash
+
+```bash
 cat /proc/acpi/button/lid/*/state
 Verificare il funzionamento dello script:
-code
-Bash
+```
 # Eseguilo con PC aperto e poi con PC chiuso
+```bash
 /usr/local/bin/check_lid.sh; echo $?
+```
