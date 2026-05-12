@@ -1,53 +1,252 @@
-# Fix fprintd Delay when Laptop is Docked (Arch Linux)
+# 🚀 CachyOS Setup — ThinkPad L14 Gen 5 AMD
 
-Questa guida spiega come disabilitare automaticamente la richiesta dell'impronta digitale (`fprintd`) quando il portatile è chiuso (modalità docked/clamshell) su Arch Linux.
+Guida completa post-installazione per:
 
-Questo evita di dover aspettare il timeout del sensore prima di poter inserire la password.
+- ottimizzazione energetica
+- configurazione fingerprint
+- setup software personale
+- ambiente desktop KDE
+- utilizzo docked/clamshell
+- networking con Tailscale
+
+Testato su:
+
+- ThinkPad L14 Gen 5 AMD
+- CachyOS
+- Arch Linux based systems
+
+---
+
+# 📌 Obiettivi
+
+Questa configurazione permette di:
+
+- ✅ Ottimizzare autonomia e consumi
+- ✅ Eliminare il delay di `fprintd` in modalità docked
+- ✅ Installare utility essenziali
+- ✅ Configurare ambiente desktop coerente
+- ✅ Preparare il sistema per sviluppo e gaming
+- ✅ Integrare Tailscale nel sistema
+- ✅ Avere un setup completo immediatamente operativo
+
+---
+
+# 1. Configurazione TLP (Gestione Energetica)
+
+TLP consente di ottimizzare automaticamente i consumi energetici del ThinkPad.
+
+## Pacchetti Necessari
+
+| Pacchetto | Descrizione |
+|---|---|
+| `tlp` | Risparmio energetico core |
+| `tlp-pd` | Selettore profili energetici |
+| `tlp-rdw` | Radio Device Wizard |
+
+## Installazione
+
+```bash
+sudo pacman -S tlp tlp-pd tlp-rdw
+```
+
+> ⚠️ Nota:
+>
+> L'installazione di TLP rimuove `power-profiles-daemon`.
+>
+> Se in futuro disinstallerai TLP:
+>
+> ```bash
+> sudo pacman -S power-profiles-daemon
+> ```
+
+---
+
+# 2. Abilitazione Servizi TLP
+
+## Abilitare TLP
+
+```bash
+sudo systemctl enable --now tlp.service
+```
+
+## Abilitare tlp-pd
+
+```bash
+sudo systemctl enable --now tlp-pd.service
+```
+
+## Supporto NetworkManager
+
+```bash
+sudo systemctl enable NetworkManager-dispatcher.service
+```
+
+## Mascherare Servizi in Conflitto
+
+```bash
+sudo systemctl mask systemd-rfkill.service systemd-rfkill.socket
+```
+
+---
+
+# 3. Installazione di yay (AUR Helper)
+
+CachyOS include spesso `paru`, ma se preferisci `yay`:
+
+## Installare dipendenze
+
+```bash
+sudo pacman -S --needed base-devel git
+```
+
+## Clonare repository
+
+```bash
+git clone https://aur.archlinux.org/yay.git
+```
+
+## Compilare e installare
+
+```bash
+cd yay
+makepkg -si
+```
+
+## Pulizia
+
+```bash
+cd ..
+rm -rf yay
+```
+
+---
+
+# 4. Installazione Applicazioni Personali
+
+Una volta configurato `yay`, installare tutte le applicazioni desiderate.
+
+## Installazione Completa
+
+```bash
+yay -S \
+  tailscale \
+  ktailctl \
+  visual-studio-code-bin \
+  tlpui \
+  kvantum \
+  materia-kde \
+  materia-gtk-theme \
+  kvantum-theme-materia \
+  vlc \
+  zapzap \
+  telegram-desktop \
+  protonplus
+```
+
+---
+
+# 📦 Descrizione Pacchetti
+
+| Pacchetto | Descrizione |
+|---|---|
+| `tailscale` | VPN mesh basata su WireGuard |
+| `ktailctl` | GUI per Tailscale |
+| `visual-studio-code-bin` | VS Code ufficiale |
+| `tlpui` | GUI per configurare TLP |
+| `kvantum` | Engine temi Qt |
+| `materia-kde` | Tema KDE Materia |
+| `materia-gtk-theme` | Tema GTK Materia |
+| `kvantum-theme-materia` | Tema Kvantum Materia |
+| `vlc` | Media player |
+| `zapzap` | Client WhatsApp desktop |
+| `telegram-desktop` | Client Telegram |
+| `protonplus` | Gestione Proton/Wine |
+
+---
+
+# 5. Configurazione Tailscale
+
+## Abilitare il servizio
+
+```bash
+sudo systemctl enable --now tailscaled
+```
+
+## Login a Tailscale
+
+```bash
+sudo tailscale up
+```
+
+Questo aprirà il browser per autenticare il dispositivo.
+
+## Verifica stato
+
+```bash
+tailscale status
+```
+
+---
+
+# 6. Personalizzazione Tema KDE
+
+La combinazione:
+
+- `Materia GTK`
+- `Materia KDE`
+- `Kvantum Materia`
+
+permette di ottenere:
+
+- tema uniforme GTK + Qt
+- look moderno
+- migliore integrazione KDE Plasma
+
+---
+
+# 7. Fix fprintd Delay in Modalità Docked
+
+Quando il laptop è chiuso (clamshell mode), `fprintd` continua ad attendere il timeout del lettore impronte.
+
+Questa configurazione evita il delay passando immediatamente alla password.
 
 ---
 
 # 📌 Problema
 
-PAM (*Pluggable Authentication Modules*) tenta di usare il lettore di impronte digitali anche quando il portatile è chiuso.
+PAM tenta di usare il fingerprint reader anche con il portatile chiuso.
 
-Poiché il sensore non è accessibile, il sistema attende il timeout (spesso 10–30 secondi) prima di mostrare il prompt della password.
+Risultato:
 
-Questo comportamento può causare ritardi in:
-
-- `sudo`
-- lock screen
-- login grafico
-- GDM / SDDM
-- sessioni docked/clamshell
+- timeout da 10–30 secondi
+- login lento
+- `sudo` lento
+- lock screen lento
 
 ---
 
 # ✅ Soluzione
 
-Utilizzare uno script che controlla lo stato del coperchio (*Lid*) e istruire PAM a saltare il modulo `fprintd` se il portatile risulta chiuso.
+Usare uno script che controlla lo stato del lid e salta `fprintd` se il laptop è chiuso.
 
 ---
 
-# 1. Creare lo Script di Controllo
+# 8. Creare Script Controllo Lid
 
-Creare uno script che restituisce:
-
-- `0` → laptop aperto → usa fingerprint
-- `1` → laptop chiuso → salta fingerprint
-
-## Creazione del file
+## Creazione file
 
 ```bash
 sudo nano /usr/local/bin/check_lid.sh
 ```
 
-## Contenuto dello script
+## Contenuto
 
 ```bash
 #!/bin/bash
 
-# Restituisce 1 (errore) se il lid è chiuso
-# Restituisce 0 (successo) se il lid è aperto
+# Restituisce:
+# 0 = lid aperto → usa fingerprint
+# 1 = lid chiuso → salta fingerprint
 
 if grep -q "closed" /proc/acpi/button/lid/*/state; then
     exit 1
@@ -64,23 +263,21 @@ sudo chmod +x /usr/local/bin/check_lid.sh
 
 ---
 
-# 2. Configurare PAM per sudo
+# 9. Configurare PAM per sudo
 
-Per evitare il ritardo quando si utilizza `sudo`, modificare:
+Modificare:
 
 ```bash
 sudo nano /etc/pam.d/sudo
 ```
 
-## Configurazione
-
-Aggiungere la riga `pam_exec.so` esattamente sopra `pam_fprintd.so`.
+## Inserire
 
 ```pam
 #%PAM-1.0
 
 # Se lo script fallisce (exit 1),
-# salta la riga successiva (default=1)
+# salta la riga successiva
 
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
@@ -90,68 +287,56 @@ auth include system-auth
 
 ---
 
-# 3. Configurare PAM per il Sistema
+# 10. Configurare PAM Globale
 
-Per applicare la modifica a tutto il sistema:
-
-- login grafico
-- GDM
-- SDDM
-- lock screen
-- autenticazione PAM globale
-
-modificare:
+Modificare:
 
 ```bash
 sudo nano /etc/pam.d/system-auth
 ```
 
-## Inserire nella sezione `auth`
+## Inserire nella sezione auth
 
 ```pam
 #%PAM-1.0
 
 auth required pam_faillock.so preauth
 
-# Controllo Lid per fprintd
+# Controllo lid per fprintd
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
 
-# Resto della configurazione
+# Resto configurazione
 auth [success=1 default=bad] pam_unix.so try_first_pass nullok
 ```
 
 ---
 
-# 4. Verifica
+# 11. Verifica Configurazione fprintd
 
-## Test con laptop aperto
-
-Eseguire:
+## Laptop aperto
 
 ```bash
 sudo ls
 ```
 
-Dovrebbe richiedere l'impronta digitale.
+Dovrebbe richiedere l'impronta.
 
 ---
 
-## Test con laptop chiuso (Docked)
-
-Eseguire:
+## Laptop chiuso (Docked)
 
 ```bash
 sudo ls
 ```
 
-Dovrebbe richiedere immediatamente la password senza attendere il timeout di `fprintd`.
+Dovrebbe richiedere immediatamente la password.
 
 ---
 
-# 5. Debug
+# 12. Debug Lid State
 
-Per verificare lo stato del lid in qualsiasi momento:
+Verificare stato ACPI:
 
 ```bash
 cat /proc/acpi/button/lid/*/state
@@ -159,13 +344,13 @@ cat /proc/acpi/button/lid/*/state
 
 ## Output esempio
 
-### Laptop aperto
+### Aperto
 
 ```text
 state:      open
 ```
 
-### Laptop chiuso
+### Chiuso
 
 ```text
 state:      closed
@@ -173,43 +358,116 @@ state:      closed
 
 ---
 
-# ✅ Risultato Finale
+# 🔋 Verifica TLP
 
-| Scenario | Comportamento |
+## Stato servizio
+
+```bash
+sudo tlp-stat -s
+```
+
+## Batteria
+
+```bash
+sudo tlp-stat -b
+```
+
+## Consumi
+
+```bash
+sudo tlp-stat -p
+```
+
+---
+
+# 🛠️ Utility Consigliate
+
+## Firmware Lenovo
+
+```bash
+sudo pacman -S fwupd
+```
+
+Aggiornamento firmware:
+
+```bash
+sudo fwupdmgr refresh
+sudo fwupdmgr get-updates
+sudo fwupdmgr update
+```
+
+---
+
+## Bluetooth
+
+```bash
+sudo pacman -S bluez bluez-utils
+sudo systemctl enable --now bluetooth
+```
+
+---
+
+## Flatpak
+
+```bash
+sudo pacman -S flatpak
+```
+
+Aggiungere Flathub:
+
+```bash
+flatpak remote-add --if-not-exists flathub \
+https://flathub.org/repo/flathub.flatpakrepo
+```
+
+---
+
+# ✅ Setup Finale
+
+| Categoria | Stato |
 |---|---|
-| Laptop aperto | Fingerprint attivo |
-| Laptop chiuso | Password immediata |
-| sudo | Nessun delay |
-| Lock screen | Nessun timeout fingerprint |
-| Modalità docked | Esperienza immediata |
+| Power management | Ottimizzato |
+| Fingerprint docked fix | Configurato |
+| KDE Theme | Configurato |
+| Development tools | Installati |
+| Messaging apps | Installate |
+| Gaming tools | Installati |
+| Tailscale | Configurato |
+| AUR helper | Configurato |
 
 ---
 
 # ⚠️ Note
 
-- Testato su Arch Linux
-- Compatibile con `fprintd`
-- Funziona con PAM-based login manager
-- Potrebbero essere necessari adattamenti su alcune distro
+- Testato su ThinkPad L14 Gen 5 AMD
+- Compatibile con CachyOS / Arch Linux
+- Alcuni pacchetti provengono da AUR
+- Riavvio consigliato dopo setup completo
 - Alcuni laptop usano percorsi ACPI differenti
 
 ---
 
 # 📚 Riferimenti Utili
 
-| Componente | Percorso |
+| Componente | Tool |
 |---|---|
-| PAM config | `/etc/pam.d/` |
-| Fingerprint daemon | `fprintd` |
-| Stato lid ACPI | `/proc/acpi/button/lid/` |
+| Power management | `tlp` |
+| Fingerprint | `fprintd` |
+| VPN mesh | `tailscale` |
+| GUI Tailscale | `ktailctl` |
+| Firmware updates | `fwupd` |
+| GUI TLP | `tlpui` |
+| Gaming Proton | `protonplus` |
 
 ---
 
-# 🛠️ Possibili Miglioramenti Futuri
+# 🚀 Possibili Miglioramenti Futuri
 
-- Supporto multi-monitor avanzato
-- Rilevamento automatico dock USB-C
-- Logging con `journalctl`
-- Servizio systemd dedicato
+- Bootstrap automatico via script
+- Dotfiles personalizzati
+- Backup con Timeshift
+- Setup Docker/Podman
+- Ottimizzazioni Wayland
+- Auto-install codec e driver
 - Hook suspend/resume
-- Configurazione automatica via installer script
+- Configurazione automatica KDE
