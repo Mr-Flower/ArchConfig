@@ -8,9 +8,11 @@ Crea lo script che verifica se il coperchio (lid) è chiuso tramite ACPI.
 
 ```bash
 sudo nano /usr/local/bin/check_lid.sh
+```
+
 Contenuto dello script:
-code
-Bash
+
+```bash
 #!/bin/bash
 # Restituisce 1 (errore) se il lid è chiuso, 0 (successo) se è aperto
 if grep -q "closed" /proc/acpi/button/lid/*/state; then
@@ -18,12 +20,17 @@ if grep -q "closed" /proc/acpi/button/lid/*/state; then
 else
     exit 0
 fi
+```
+
 Rendi lo script eseguibile:
-code
-Bash
+
+```bash
 sudo chmod +x /usr/local/bin/check_lid.sh
-2. Configurazione PAM (Sudo)
+```
+
+## 2. Configurazione PAM (Sudo)
 Modifica il file di configurazione di sudo per inserire il controllo prima della richiesta dell'impronta.
+
 code
 Bash
 sudo nano /etc/pam.d/sudo
