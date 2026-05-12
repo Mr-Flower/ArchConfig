@@ -53,12 +53,8 @@ Inserisci il controllo all'inizio della sezione auth:
 ``` bash
 #%PAM-1.0
 auth required pam_faillock.so preauth
-```
-# Controllo Docked Mode
-```bash
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
-
 auth [success=1 default=bad] pam_unix.so try_first_pass nullok
 ```
 ## 4. Comandi di Verifica e Debug
@@ -66,8 +62,9 @@ Controllare lo stato hardware del Lid:
 
 ```bash
 cat /proc/acpi/button/lid/*/state
-Verificare il funzionamento dello script:
 ```
+
+Verificare il funzionamento dello script:
 # Eseguilo con PC aperto e poi con PC chiuso
 ```bash
 /usr/local/bin/check_lid.sh; echo $?
