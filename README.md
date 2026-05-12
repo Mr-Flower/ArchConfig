@@ -1,14 +1,14 @@
-Fix fprintd Delay when Laptop is Docked (Arch Linux)
-Questa guida spiega come disabilitare automaticamente la richiesta dell'impronta digitale (fprintd) quando il portatile è chiuso (modalità docked/clamshell) su Arch Linux. Questo evita di dover aspettare il timeout del sensore prima di poter inserire la password.
-Problema
-PAM (Pluggable Authentication Modules) tenta di usare il lettore di impronte digitali anche quando il portatile è chiuso. Poiché il sensore non è accessibile, il sistema attende il timeout (spesso 10-30 secondi) prima di mostrare il prompt della password.
-Soluzione
-Utilizzare uno script che controlla lo stato del coperchio (Lid) e istruire PAM a saltare il modulo fprintd se il coperchio risulta chiuso.
-1. Creare lo script di controllo
-Crea uno script che restituisca un errore se il portatile è chiuso.
-code
-Bash
-Incolla il seguente codice:
+
+# Fix fprintd Delay on Docked Laptop (Arch Linux)
+
+Questa guida spiega come disabilitare automaticamente il timeout del lettore d'impronte digitali quando il portatile è chiuso (modalità docked/clamshell), forzando l'inserimento immediato della password.
+
+## 1. Creazione dello Script di Controllo
+Crea lo script che verifica se il coperchio (lid) è chiuso tramite ACPI.
+
+```bash
+sudo nano /usr/local/bin/check_lid.sh
+Contenuto dello script:
 code
 Bash
 #!/bin/bash
@@ -22,22 +22,21 @@ Rendi lo script eseguibile:
 code
 Bash
 sudo chmod +x /usr/local/bin/check_lid.sh
-2. Configurare PAM per Sudo
-Per evitare il ritardo quando usi sudo, modifica il file /etc/pam.d/sudo.
+2. Configurazione PAM (Sudo)
+Modifica il file di configurazione di sudo per inserire il controllo prima della richiesta dell'impronta.
 code
 Bash
 sudo nano /etc/pam.d/sudo
-Aggiungi la riga pam_exec.so esattamente sopra la riga di fprintd:
+Aggiungi la riga pam_exec.so sopra pam_fprintd.so:
 code
 Text
 #%PAM-1.0
-# Se lo script fallisce (exit 1), salta la riga successiva (default=1)
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
 auth include system-auth
 ...
-3. Configurare PAM per il Sistema (Login, GDM, SDDM)
-Per applicare la modifica a tutto il sistema (login grafico, lock screen, ecc.), modifica il file system-auth.
+3. Configurazione PAM (System Auth)
+Modifica il file globale per applicare la logica al login grafico e al lock screen.
 code
 Bash
 sudo nano /etc/pam.d/system-auth
@@ -47,26 +46,19 @@ Text
 #%PAM-1.0
 auth required pam_faillock.so preauth
 
-# Controllo Lid per fprintd
+# Controllo Docked Mode
 auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
 auth sufficient pam_fprintd.so
 
-# Resto della configurazione
 auth [success=1 default=bad] pam_unix.so try_first_pass nullok
 ...
-4. Verifica
-Per verificare che tutto funzioni:
-A PC aperto: Esegui sudo ls. Dovrebbe chiederti l'impronta.
-A PC chiuso (Docked): Esegui sudo ls. Dovrebbe chiederti immediatamente la password.
-Puoi debuggare lo stato del lid in ogni momento con:
+4. Comandi di Verifica e Debug
+Controllare lo stato hardware del Lid:
 code
 Bash
 cat /proc/acpi/button/lid/*/state
-Opzione Alternativa (Input Simultaneo)
-Se preferisci poter usare sia l'impronta che la password contemporaneamente senza script, puoi installare un modulo PAM modificato dall'AUR:
-Installa pam-fprint-grosshack:
+Verificare il funzionamento dello script:
 code
 Bash
-yay -S pam-fprint-grosshack
-Sostituisci pam_fprintd.so con pam_fprintd_grosshack.so nei file PAM.
-Questo farà apparire il prompt della password istantaneamente mentre il sensore è in ascolto.
+# Eseguilo con PC aperto e poi con PC chiuso
+/usr/local/bin/check_lid.sh; echo $?
