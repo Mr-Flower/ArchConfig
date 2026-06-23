@@ -71,7 +71,12 @@ HOME_FILES=(
     ".config/plasmashellrc"
     # Icona custom del launcher (Kickoff) in basso a sinistra
     "Immagini/img/start-here-cachyos-min.svg"
+    # Immagine dell'account utente (avatar). Vedi step_theming -> AccountsService
+    "Immagini/img/pig.jpg"
 )
+
+# Sorgente dell'avatar utente (impostato via AccountsService da install.sh).
+AVATAR_SRC_REL="Immagini/img/pig.jpg"
 
 # Wallpaper del desktop referenziati dal pannello: NON versionati (identici a
 # quelli del pacchetto cachyos-wallpapers), vengono ricopiati da install.sh.

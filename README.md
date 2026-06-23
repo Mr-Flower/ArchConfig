@@ -657,7 +657,7 @@ Aggiungere `ktailctl`.
 
 # 9. KDE Plasma: tema, coerenza grafica e Wayland
 
-> 🤖 **Automatizzato**: `./install.sh theming` ripristina il look (kdeglobals, kwinrc, Kvantum, GTK), lo schema colori `MateriaDarkFlower`, il **layout del pannello/applet** (`plasma-org.kde.plasma.desktop-appletsrc`, `plasmashellrc`), l'**icona custom del launcher** (`~/Immagini/img/start-here-cachyos-min.svg`) e ricopia i wallpaper dal pacchetto `cachyos-wallpapers`. Dopo, fai logout/login.
+> 🤖 **Automatizzato**: `./install.sh theming` ripristina il look (kdeglobals, kwinrc, Kvantum, GTK), lo schema colori `MateriaDarkFlower`, il **layout del pannello/applet** (`plasma-org.kde.plasma.desktop-appletsrc`, `plasmashellrc`), l'**icona custom del launcher** (`~/Immagini/img/start-here-cachyos-min.svg`), l'**immagine dell'account utente** (`pig.jpg`, impostata via AccountsService) e ricopia i wallpaper dal pacchetto `cachyos-wallpapers`. Dopo, fai logout/login.
 >
 > 🟢 **App Flatpak** (Bambu Studio, Gear Lever, calibre, RustDesk, Dolphin, RetroArch, PPSSPP): `./install.sh flatpak`. Steam e OnlyOffice sono nativi e arrivano col passo `packages`.
 

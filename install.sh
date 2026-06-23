@@ -177,7 +177,34 @@ step_theming() {
         warn "$WALLPAPER_PKG_DIR assente: installa prima 'cachyos-wallpapers' (passo packages)."
     fi
 
+    # Avatar utente (immagine account) via AccountsService.
+    set_avatar
+
     warn "Per vedere il tema applicato: esci e rientra dalla sessione (logout/login)."
+}
+
+# Imposta l'immagine dell'account utente (pig.jpg) tramite AccountsService.
+# Idempotente: aggiorna/inserisce la voce Icon= nel file utente.
+set_avatar() {
+    local src="$REPO/home/$AVATAR_SRC_REL"
+    [[ -f "$src" ]] || { skip "avatar non nel repo: $AVATAR_SRC_REL"; return; }
+    info "Imposto avatar utente (potrebbe chiedere sudo)"
+    local icon="/var/lib/AccountsService/icons/$USER"
+    local uf="/var/lib/AccountsService/users/$USER"
+
+    sudo install -D -m 644 "$src" "$icon" || { warn "avatar: copia in $icon fallita"; return; }
+    cp -a "$src" "$HOME/.face" 2>/dev/null || true   # fallback per alcuni greeter
+
+    if sudo test -f "$uf" && sudo grep -q '^\[User\]' "$uf"; then
+        if sudo grep -q '^Icon=' "$uf"; then
+            sudo sed -i "s|^Icon=.*|Icon=$icon|" "$uf"
+        else
+            sudo sed -i "/^\[User\]/a Icon=$icon" "$uf"
+        fi
+    else
+        printf '[User]\nIcon=%s\nSystemAccount=false\n' "$icon" | sudo tee "$uf" >/dev/null
+    fi
+    ok "avatar impostato"
 }
 
 # ---------------------------------------------------------------------------
