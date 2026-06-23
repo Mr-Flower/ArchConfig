@@ -17,6 +17,65 @@ La guida copre:
 
 ---
 
+## ⚡ Avvio rapido automatico (TL;DR)
+
+Questa repo ora **non è solo una guida**: contiene gli script per ripristinare tutto
+da sola dopo una formattazione. La guida manuale qui sotto resta come riferimento.
+
+### Dopo aver formattato e reinstallato CachyOS
+
+```bash
+git clone https://github.com/Mr-Flower/ArchConfig.git ~/git/ArchConfig
+cd ~/git/ArchConfig
+./install.sh
+```
+
+`install.sh` esegue, chiedendo conferma sui passi delicati:
+
+| Passo | Cosa fa |
+|---|---|
+| `packages` | reinstalla i pacchetti repo (`packages/pacman.txt`) e AUR (`packages/aur.txt`) |
+| `system`   | ripristina `/etc/plasmalogin.conf`, override coperchio (logind), `check_lid.sh`, `tlp.conf` |
+| `pam`      | aggiunge fingerprint+coperchio a `/etc/pam.d/system-auth` (patch idempotente, con backup) |
+| `theming`  | ripristina look KDE/GTK/Kvantum + schema colori `MateriaDarkFlower` |
+| `services` | abilita `tlp`, `bluetooth`, `tailscaled` |
+
+Puoi anche eseguire singoli passi:
+
+```bash
+./install.sh theming          # solo il tema
+./install.sh packages system  # solo pacchetti + file di sistema
+ASSUME_YES=1 ./install.sh      # senza conferme (sconsigliato per PAM)
+```
+
+### Salvare lo stato attuale nella repo
+
+Quando cambi qualcosa che vuoi conservare (tema, file in `/etc`, nuovi pacchetti):
+
+```bash
+cd ~/git/ArchConfig
+./backup.sh            # ricopia le config attuali dentro la repo
+./backup.sh --commit   # ... e crea anche il commit git
+git push               # invia su GitHub
+```
+
+### Struttura
+
+```
+install.sh        bootstrap post-formattazione
+backup.sh         cattura lo stato attuale nella repo
+scripts/lib.sh    helper + MANIFEST dei file tracciati (unico punto da aggiornare)
+packages/         liste pacchetti pacman + AUR (rigenerate da backup.sh)
+system/           mirror di /etc e /usr/local/bin
+home/             mirror dei dotfile in ~ (look KDE/GTK)
+```
+
+> ⚠️ **Sicurezza**: PAM viene modificato con patch idempotente e backup automatico,
+> mai sovrascritto alla cieca. I segreti (chiavi, stato Tailscale) sono esclusi via `.gitignore`.
+> Per aggiungere un nuovo file al backup, basta aggiungerlo agli array in `scripts/lib.sh`.
+
+---
+
 ## ✅ Hardware e sistemi target
 
 Testato / pensato per:
@@ -714,3 +773,4 @@ Installazione:
 sudo pacman -S --needed flatpak
 ```
 ---
+roba aggiunta da integrare: inputactions-kwin

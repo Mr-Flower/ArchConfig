@@ -1,0 +1,7 @@
+#%PAM-1.0
+# Se il lid è chiuso, salta la riga successiva (default=1)
+auth [success=ignore default=1] pam_exec.so quiet /usr/local/bin/check_lid.sh
+auth sufficient pam_fprintd.so # chwd-fprintd
+auth            include         system-auth
+account         include         system-auth
+session         include         system-auth

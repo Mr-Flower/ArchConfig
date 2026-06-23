@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Libreria condivisa per install.sh e backup.sh
+# Contiene: helper di output, rilevamento root repo, e il MANIFEST dei file tracciati.
+
+set -euo pipefail
+
+# --- Output colorato -------------------------------------------------------
+if [[ -t 1 ]]; then
+    C_RESET=$'\e[0m'; C_BLUE=$'\e[1;34m'; C_GREEN=$'\e[1;32m'
+    C_YELLOW=$'\e[1;33m'; C_RED=$'\e[1;31m'; C_DIM=$'\e[2m'
+else
+    C_RESET=""; C_BLUE=""; C_GREEN=""; C_YELLOW=""; C_RED=""; C_DIM=""
+fi
+
+info()  { printf '%s==>%s %s\n'  "$C_BLUE"   "$C_RESET" "$*"; }
+ok()    { printf '%s  ✔%s %s\n'  "$C_GREEN"  "$C_RESET" "$*"; }
+warn()  { printf '%s  !%s %s\n'  "$C_YELLOW" "$C_RESET" "$*" >&2; }
+err()   { printf '%s  ✘%s %s\n'  "$C_RED"    "$C_RESET" "$*" >&2; }
+skip()  { printf '%s  -%s %s%s%s\n' "$C_DIM" "$C_RESET" "$C_DIM" "$*" "$C_RESET"; }
+
+# Chiede conferma (default = No). Rispetta la variabile ASSUME_YES=1.
+confirm() {
+    [[ "${ASSUME_YES:-0}" == "1" ]] && return 0
+    local reply
+    printf '%s??%s %s [s/N] ' "$C_YELLOW" "$C_RESET" "$*"
+    read -r reply
+    [[ "$reply" =~ ^[sSyY]$ ]]
+}
+
+# --- Percorsi --------------------------------------------------------------
+# REPO = cartella che contiene questo script/../  (root del repo)
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export REPO
+
+# ===========================================================================
+# MANIFEST — l'unico posto da aggiornare per aggiungere nuovi file tracciati.
+# ===========================================================================
+
+# File di sistema gestiti per COPIA diretta (sicuri da sovrascrivere).
+# Percorso relativo a / (e a system/ dentro il repo).
+SYSTEM_FILES=(
+    "etc/plasmalogin.conf"
+    "etc/tlp.conf"
+    "etc/systemd/logind.conf.d/10-clamshell-docked.conf"
+    "usr/local/bin/check_lid.sh"
+)
+
+# File PAM: tracciati per BACKUP/riferimento, ma il ripristino NON avviene
+# per sovrascrittura (pericoloso) bensì tramite patch idempotente. Vedi pam_*.
+PAM_FILES=(
+    "etc/pam.d/system-auth"
+    "etc/pam.d/sudo"
+)
+
+# Dotfiles utente (look KDE/GTK/Kvantum + schema colori personale).
+# Percorso relativo a $HOME (e a home/ dentro il repo).
+HOME_FILES=(
+    ".config/kdeglobals"
+    ".config/kwinrc"
+    ".config/plasmarc"
+    ".config/kcminputrc"
+    ".config/ksplashrc"
+    ".config/kscreenlockerrc"
+    ".config/gtkrc"
+    ".config/gtk-3.0/settings.ini"
+    ".config/gtk-4.0/settings.ini"
+    ".config/Kvantum/kvantum.kvconfig"
+    ".local/share/color-schemes/MateriaDarkFlower.colors"
+)
+
+# File con permessi speciali da forzare in fase di install (path -> mode).
+declare -A SYSTEM_MODES=(
+    ["usr/local/bin/check_lid.sh"]="755"
+)

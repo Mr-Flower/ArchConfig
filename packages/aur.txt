@@ -1,0 +1,9 @@
+anydesk-bin
+epson-inkjet-printer-escpr2
+google-chrome
+ktailctl
+portproton
+turboprint
+visual-studio-code-bin
+z-library-bin
+zapzap
