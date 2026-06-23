@@ -120,6 +120,9 @@ PAM_FILES=(
 HOME_FILES=(
     ".config/kdeglobals"
     ".config/kwinrc"
+    # Gesti touchpad personalizzati a 3 dita (Overview/Grid View) — richiede il
+    # pacchetto AUR 'inputactions-kwin'; l'effetto è abilitato via kwinrc.
+    ".config/inputactions/config.yaml"
     ".config/plasmarc"
     ".config/kcminputrc"
     ".config/ksplashrc"

@@ -1,0 +1,30 @@
+# InputActions — gesti touchpad (gestito da ArchConfig)
+# Solo 3 dita: i 4 dita restano gestiti nativamente da KWin.
+# Swipe SU  (3 dita) -> Overview  (Meta+W)
+# Swipe GIU (3 dita) -> Grid View (Meta+G)
+
+# Migliora il riconoscimento: allarga la tolleranza d'angolo per su/giu/sx/dx
+# da 20° (default 0.9) a 45° (comportamento pre-0.9). Disabilita i gesti
+# diagonali, che non usiamo, ma rende le 3 dita molto più "indovinate".
+device_rules:
+  - conditions: $touchpad
+    swipe:
+      angle_tolerance: 45
+
+touchpad:
+  gestures:
+    # --- Swipe SU (3 dita) -> Overview ---
+    - type: swipe
+      fingers: 3
+      direction: up
+      actions:
+        - on: begin
+          plasma_shortcut: "kwin,Overview"
+
+    # --- Swipe GIU (3 dita) -> Grid View ---
+    - type: swipe
+      fingers: 3
+      direction: down
+      actions:
+        - on: begin
+          plasma_shortcut: "kwin,Grid View"

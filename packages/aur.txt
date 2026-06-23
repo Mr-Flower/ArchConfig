@@ -1,6 +1,7 @@
 anydesk-bin
 epson-inkjet-printer-escpr2
 google-chrome
+inputactions-kwin
 ktailctl
 portproton
 turboprint

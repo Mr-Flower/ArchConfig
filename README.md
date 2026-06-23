@@ -784,9 +784,24 @@ Per tracciare un nuovo file basta aggiungerlo all'array giusto e rilanciare `./b
 ./backup.sh --commit && git push
 ```
 
-## 13.3 Da integrare / TODO
+## 13.3 Gesti touchpad (InputActions)
 
-- [ ] `inputactions-kwin` (gesti touchpad) — valutare se versionarne la config
+Gesti personalizzati a **3 dita** su Plasma 6 Wayland, tramite il pacchetto AUR
+[`inputactions-kwin`](https://github.com/taj-ny/InputActions):
+
+| Gesto | Azione |
+|---|---|
+| Swipe **su** (3 dita) | Overview (`Meta+W`) |
+| Swipe **giù** (3 dita) | Vista a griglia (`Meta+G`) |
+
+I gesti **nativi a 4 dita** di KWin restano invariati (e interattivi).
+
+- Config versionata: `home/.config/inputactions/config.yaml` (ripristinata da
+  `./install.sh theming`); l'effetto è abilitato via `kwinrc` (`kwin_gesturesEnabled=true`).
+- La `device_rules` alza la tolleranza d'angolo a 45° per un riconoscimento più
+  affidabile delle 3 dita.
+- ⚠️ `inputactions-kwin` è compilato contro l'ABI di KWin: dopo un aggiornamento
+  di Plasma va **ricompilato** (`yay -S inputactions-kwin`).
 
 ## Licenza
 

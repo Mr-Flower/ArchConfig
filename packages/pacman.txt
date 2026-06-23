@@ -201,6 +201,7 @@ rsync
 s-nail
 s-tui
 sg3_utils
+shellcheck
 shelly
 smartmontools
 sof-firmware
