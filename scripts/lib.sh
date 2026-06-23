@@ -66,7 +66,18 @@ HOME_FILES=(
     ".config/gtk-4.0/settings.ini"
     ".config/Kvantum/kvantum.kvconfig"
     ".local/share/color-schemes/MateriaDarkFlower.colors"
+    # Layout pannello: posizione elementi, applet, e icona del launcher
+    ".config/plasma-org.kde.plasma.desktop-appletsrc"
+    ".config/plasmashellrc"
+    # Icona custom del launcher (Kickoff) in basso a sinistra
+    "Immagini/img/start-here-cachyos-min.svg"
 )
+
+# Wallpaper del desktop referenziati dal pannello: NON versionati (identici a
+# quelli del pacchetto cachyos-wallpapers), vengono ricopiati da install.sh.
+CACHY_WALLPAPERS=(cachy-blue cachy-dark cachy-emerald-dark cachy-purple cachy-sunset)
+WALLPAPER_PKG_DIR="/usr/share/wallpapers/cachyos-wallpapers"
+WALLPAPER_DEST_DIR="$HOME/Immagini/wallpapers"
 
 # File con permessi speciali da forzare in fase di install (path -> mode).
 declare -A SYSTEM_MODES=(

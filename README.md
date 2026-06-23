@@ -35,9 +35,10 @@ cd ~/git/ArchConfig
 | Passo | Cosa fa |
 |---|---|
 | `packages` | reinstalla i pacchetti repo (`packages/pacman.txt`) e AUR (`packages/aur.txt`) |
+| `flatpak`  | aggiunge Flathub e installa le app Flatpak (`packages/flatpak.txt`: Bambu Studio, Gear Lever, calibre, RustDesk, ecc.) |
 | `system`   | ripristina `/etc/plasmalogin.conf`, override coperchio (logind), `check_lid.sh`, `tlp.conf` |
 | `pam`      | aggiunge fingerprint+coperchio a `/etc/pam.d/system-auth` (patch idempotente, con backup) |
-| `theming`  | ripristina look KDE/GTK/Kvantum + schema colori `MateriaDarkFlower` |
+| `theming`  | ripristina look KDE/GTK/Kvantum + schema colori `MateriaDarkFlower`, **layout del pannello e applet**, **icona custom del launcher**, e ricopia i wallpaper |
 | `services` | abilita `tlp`, `bluetooth`, `tailscaled` |
 
 Puoi anche eseguire singoli passi:
@@ -65,9 +66,9 @@ git push               # invia su GitHub
 install.sh        bootstrap post-formattazione
 backup.sh         cattura lo stato attuale nella repo
 scripts/lib.sh    helper + MANIFEST dei file tracciati (unico punto da aggiornare)
-packages/         liste pacchetti pacman + AUR (rigenerate da backup.sh)
+packages/         liste pacchetti pacman + AUR + flatpak (rigenerate da backup.sh)
 system/           mirror di /etc e /usr/local/bin
-home/             mirror dei dotfile in ~ (look KDE/GTK)
+home/             mirror dei dotfile in ~ (look KDE, pannello/applet, icona launcher)
 ```
 
 > ⚠️ **Sicurezza**: PAM viene modificato con patch idempotente e backup automatico,
@@ -656,7 +657,9 @@ Aggiungere `ktailctl`.
 
 # 9. KDE Plasma: tema, coerenza grafica e Wayland
 
-> 🤖 **Automatizzato**: `./install.sh theming` ripristina il look (kdeglobals, kwinrc, Kvantum, GTK) e lo schema colori personale `MateriaDarkFlower`. Dopo, fai logout/login.
+> 🤖 **Automatizzato**: `./install.sh theming` ripristina il look (kdeglobals, kwinrc, Kvantum, GTK), lo schema colori `MateriaDarkFlower`, il **layout del pannello/applet** (`plasma-org.kde.plasma.desktop-appletsrc`, `plasmashellrc`), l'**icona custom del launcher** (`~/Immagini/img/start-here-cachyos-min.svg`) e ricopia i wallpaper dal pacchetto `cachyos-wallpapers`. Dopo, fai logout/login.
+>
+> 🟢 **App Flatpak** (Bambu Studio, Gear Lever, calibre, RustDesk, Dolphin, RetroArch, PPSSPP): `./install.sh flatpak`. Steam e OnlyOffice sono nativi e arrivano col passo `packages`.
 
 ## 9.1 Tema Materia + Kvantum
 

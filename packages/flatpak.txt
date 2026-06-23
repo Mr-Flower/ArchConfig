@@ -1,0 +1,8 @@
+com.bambulab.BambuStudio
+com.calibre_ebook.calibre
+com.rustdesk.RustDesk
+com.steamgriddb.SGDBoop
+it.mijorus.gearlever
+org.DolphinEmu.dolphin-emu
+org.libretro.RetroArch
+org.ppsspp.PPSSPP

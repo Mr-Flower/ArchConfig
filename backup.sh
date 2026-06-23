@@ -44,6 +44,12 @@ done
 info "Aggiorno liste pacchetti"
 pacman -Qqen > "$REPO/packages/pacman.txt" && ok "packages/pacman.txt ($(wc -l < "$REPO/packages/pacman.txt"))"
 pacman -Qqem > "$REPO/packages/aur.txt"    && ok "packages/aur.txt ($(wc -l < "$REPO/packages/aur.txt"))"
+if command -v flatpak >/dev/null; then
+    flatpak list --app --columns=application > "$REPO/packages/flatpak.txt" \
+        && ok "packages/flatpak.txt ($(wc -l < "$REPO/packages/flatpak.txt"))"
+else
+    skip "flatpak non installato, salto flatpak.txt"
+fi
 
 echo
 info "Stato git:"
