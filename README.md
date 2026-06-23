@@ -128,6 +128,8 @@ Modificare PAM in modo errato può bloccare `sudo`, login grafico o lock screen.
 
 # 1. Gestione energetica con TLP
 
+> 🤖 **Automatizzato**: `./install.sh packages services` installa TLP e abilita i servizi; `tlp.conf` è ripristinato da `./install.sh system`.
+
 TLP consente di ottimizzare automaticamente i consumi energetici del ThinkPad.
 
 ## 1.1 Pacchetti necessari
@@ -181,6 +183,8 @@ sudo tlp-stat -p
 La modalità clamshell prevede laptop chiuso, dock o alimentatore collegato, monitor esterno, tastiera e mouse esterni.
 
 ## 2.1 Comportamento del coperchio
+
+> 🤖 **Automatizzato**: questo file è già nella repo (`system/etc/systemd/logind.conf.d/10-clamshell-docked.conf`) e viene applicato da `./install.sh system`.
 
 Creare un override per `systemd-logind`:
 
@@ -274,6 +278,8 @@ fprintd-delete "$USER"
 
 # 4. Fix delay fprintd in modalità docked
 
+> 🤖 **Automatizzato**: `check_lid.sh` è ripristinato da `./install.sh system`; la logica PAM da `./install.sh pam` (patch idempotente con backup).
+
 ## 4.1 Problema
 
 Quando il laptop è chiuso, PAM può tentare comunque l’autenticazione tramite lettore impronte.
@@ -347,6 +353,8 @@ cat /proc/acpi/button/lid/*/state
 ---
 
 # 5. Configurazione PAM per fingerprint
+
+> 🤖 **Automatizzato**: `./install.sh pam` inserisce le righe in `system-auth` solo se mancano, con backup automatico e sanity-check. Le istruzioni manuali qui sotto servono solo come riferimento/recovery.
 
 ## Strategia consigliata
 
@@ -529,6 +537,8 @@ Durante l’installazione:
 
 # 7. Installazione applicazioni personali
 
+> 🤖 **Automatizzato**: `./install.sh packages` installa tutto da `packages/pacman.txt` (repo) e `packages/aur.txt` (AUR), rigenerati da `./backup.sh`. Le liste sotto sono il riferimento "minimo".
+
 ## 7.1 Pacchetti da repository ufficiali
 
 ```bash
@@ -645,6 +655,8 @@ Aggiungere `ktailctl`.
 ---
 
 # 9. KDE Plasma: tema, coerenza grafica e Wayland
+
+> 🤖 **Automatizzato**: `./install.sh theming` ripristina il look (kdeglobals, kwinrc, Kvantum, GTK) e lo schema colori personale `MateriaDarkFlower`. Dopo, fai logout/login.
 
 ## 9.1 Tema Materia + Kvantum
 
@@ -772,5 +784,30 @@ Installazione:
 ```bash
 sudo pacman -S --needed flatpak
 ```
+
 ---
-roba aggiunta da integrare: inputactions-kwin
+
+# 13. Manutenzione della repo
+
+Questa sezione è la parte "automatica" descritta nell'[Avvio rapido](#-avvio-rapido-automatico-tldr).
+
+## 13.1 Aggiungere un nuovo file al backup
+
+Tutti i file tracciati sono elencati negli array dentro `scripts/lib.sh`:
+
+- `SYSTEM_FILES` → file in `/etc`, `/usr/local/bin` (ripristinati per copia)
+- `PAM_FILES` → file PAM (solo backup; ripristino tramite patch idempotente)
+- `HOME_FILES` → dotfile in `~` (look KDE/GTK)
+
+Per tracciare un nuovo file basta aggiungerlo all'array giusto e rilanciare `./backup.sh`.
+
+## 13.2 Aggiornare lo stato dopo una modifica
+
+```bash
+./backup.sh --commit && git push
+```
+
+## 13.3 Da integrare / TODO
+
+- [ ] `inputactions-kwin` (gesti touchpad) — valutare se versionarne la config
+- [ ] override clamshell `logind` non ancora applicato sul sistema (è già nella repo, lo applica `./install.sh system`)
