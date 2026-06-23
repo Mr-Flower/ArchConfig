@@ -36,7 +36,7 @@ cd ~/git/ArchConfig
 |---|---|
 | `packages` | reinstalla i pacchetti repo (`packages/pacman.txt`) e AUR (`packages/aur.txt`) |
 | `flatpak`  | aggiunge Flathub e installa le app Flatpak (`packages/flatpak.txt`: Bambu Studio, Gear Lever, calibre, RustDesk, ecc.) |
-| `system`   | ripristina `/etc/plasmalogin.conf`, override coperchio (logind), `check_lid.sh`, `tlp.conf` |
+| `system`   | ripristina `/etc/plasmalogin.conf`, `check_lid.sh`, `tlp.conf` |
 | `pam`      | aggiunge fingerprint+coperchio a `/etc/pam.d/system-auth` (patch idempotente, con backup) |
 | `theming`  | ripristina look KDE/GTK/Kvantum + schema colori `MateriaDarkFlower`, **layout del pannello e applet**, **icona custom del launcher**, e ricopia i wallpaper |
 | `services` | abilita `tlp`, `bluetooth`, `tailscaled` |
@@ -185,37 +185,11 @@ La modalità clamshell prevede laptop chiuso, dock o alimentatore collegato, mon
 
 ## 2.1 Comportamento del coperchio
 
-> 🤖 **Automatizzato**: questo file è già nella repo (`system/etc/systemd/logind.conf.d/10-clamshell-docked.conf`) e viene applicato da `./install.sh system`.
-
-Creare un override per `systemd-logind`:
-
-```bash
-sudo mkdir -p /etc/systemd/logind.conf.d
-sudo nano /etc/systemd/logind.conf.d/10-clamshell-docked.conf
-```
-
-Contenuto:
-
-```ini
-[Login]
-HandleLidSwitch=suspend
-HandleLidSwitchExternalPower=suspend
-HandleLidSwitchDocked=ignore
-```
-
-Questa configurazione mantiene la sospensione normale quando il laptop è usato da solo, ma evita la sospensione automatica quando il sistema è docked o rileva display esterni.
-
-Applicare con riavvio:
-
-```bash
-sudo reboot
-```
-
-In alternativa, riavviare `systemd-logind`, ma è meno consigliato perché può terminare sessioni utente:
-
-```bash
-sudo systemctl restart systemd-logind
-```
+> ℹ️ **Nessuna configurazione necessaria.** Su Plasma 6 / systemd recenti il
+> comportamento desiderato è già il default: il sistema **non sospende** quando
+> è docked o rileva un monitor esterno (`HandleLidSwitchDocked=ignore` è il
+> default), e sospende normalmente quando il laptop è usato da solo. Per questo
+> il repo **non** gestisce più alcun override `logind`.
 
 ## 2.2 Impostazioni KDE
 
@@ -813,7 +787,6 @@ Per tracciare un nuovo file basta aggiungerlo all'array giusto e rilanciare `./b
 ## 13.3 Da integrare / TODO
 
 - [ ] `inputactions-kwin` (gesti touchpad) — valutare se versionarne la config
-- [ ] override clamshell `logind` non ancora applicato sul sistema (è già nella repo, lo applica `./install.sh system`)
 
 ## Licenza
 
