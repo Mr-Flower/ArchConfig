@@ -42,11 +42,18 @@ for rel in "${HOME_FILES[@]}"; do
 done
 
 info "Aggiorno liste pacchetti"
-pacman -Qqen > "$REPO/packages/pacman.txt" && ok "packages/pacman.txt ($(wc -l < "$REPO/packages/pacman.txt"))"
-pacman -Qqem > "$REPO/packages/aur.txt"    && ok "packages/aur.txt ($(wc -l < "$REPO/packages/aur.txt"))"
+# Scrittura atomica (tmp + mv): se il comando fallisce il file NON viene
+# troncato a zero byte, così non si perde la lista precedente.
+write_atomic "$REPO/packages/pacman.txt" pacman -Qqen \
+    && ok "packages/pacman.txt ($(wc -l < "$REPO/packages/pacman.txt"))" \
+    || err "aggiornamento pacman.txt fallito (lista precedente preservata)"
+write_atomic "$REPO/packages/aur.txt" pacman -Qqem \
+    && ok "packages/aur.txt ($(wc -l < "$REPO/packages/aur.txt"))" \
+    || err "aggiornamento aur.txt fallito (lista precedente preservata)"
 if command -v flatpak >/dev/null; then
-    flatpak list --app --columns=application > "$REPO/packages/flatpak.txt" \
-        && ok "packages/flatpak.txt ($(wc -l < "$REPO/packages/flatpak.txt"))"
+    write_atomic "$REPO/packages/flatpak.txt" flatpak list --app --columns=application \
+        && ok "packages/flatpak.txt ($(wc -l < "$REPO/packages/flatpak.txt"))" \
+        || err "aggiornamento flatpak.txt fallito (lista precedente preservata)"
 else
     skip "flatpak non installato, salto flatpak.txt"
 fi

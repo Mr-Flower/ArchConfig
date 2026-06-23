@@ -20,13 +20,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/scripts/lib.sh"
 # ---------------------------------------------------------------------------
 step_packages() {
     info "Installazione pacchetti dai repository ufficiali"
-    if [[ -s "$REPO/packages/pacman.txt" ]]; then
-        sudo pacman -S --needed --noconfirm - < "$REPO/packages/pacman.txt" \
-            && ok "pacchetti repo installati" \
-            || warn "alcuni pacchetti repo potrebbero non essere stati installati"
-    else
-        warn "packages/pacman.txt vuoto o assente"
-    fi
+    install_pkglist "pacchetti repo" "$REPO/packages/pacman.txt" \
+        sudo pacman -S --needed --noconfirm
 
     info "Installazione pacchetti AUR"
     local helper=""
@@ -42,10 +37,9 @@ step_packages() {
             helper="yay"
         fi
     fi
-    if [[ -n "$helper" && -s "$REPO/packages/aur.txt" ]]; then
-        "$helper" -S --needed --noconfirm - < "$REPO/packages/aur.txt" \
-            && ok "pacchetti AUR installati" \
-            || warn "alcuni pacchetti AUR potrebbero non essere stati installati"
+    if [[ -n "$helper" ]]; then
+        install_pkglist "pacchetti AUR" "$REPO/packages/aur.txt" \
+            "$helper" -S --needed --noconfirm
     fi
 }
 
@@ -61,11 +55,16 @@ step_flatpak() {
     sudo flatpak remote-add --if-not-exists flathub \
         https://flathub.org/repo/flathub.flatpakrepo && ok "remote Flathub pronto"
     if [[ -s "$REPO/packages/flatpak.txt" ]]; then
-        # Installa in blocco; gli ID già presenti vengono semplicemente saltati.
-        # shellcheck disable=SC2046
-        flatpak install -y --noninteractive flathub $(grep -vE '^\s*#|^\s*$' "$REPO/packages/flatpak.txt") \
-            && ok "app Flatpak installate" \
-            || warn "alcune app Flatpak potrebbero non essere state installate"
+        local apps=()
+        mapfile -t apps < <(grep -vE '^\s*#|^\s*$' "$REPO/packages/flatpak.txt")
+        if (( ${#apps[@]} )); then
+            # Installa in blocco; gli ID già presenti vengono semplicemente saltati.
+            flatpak install -y --noninteractive flathub "${apps[@]}" \
+                && ok "app Flatpak installate (${#apps[@]})" \
+                || warn "alcune app Flatpak potrebbero non essere state installate"
+        else
+            warn "packages/flatpak.txt non contiene app"
+        fi
     else
         warn "packages/flatpak.txt vuoto o assente"
     fi
@@ -80,11 +79,7 @@ step_system() {
         local src="$REPO/system/$rel" dst="/$rel"
         [[ -e "$src" ]] || { skip "non nel repo: $rel"; continue; }
         sudo mkdir -p "$(dirname "$dst")"
-        # backup del file esistente, se diverso
-        if [[ -e "$dst" ]] && ! sudo cmp -s "$src" "$dst"; then
-            sudo cp -a "$dst" "$dst.archconfig.bak"
-            warn "backup creato: $dst.archconfig.bak"
-        fi
+        backup_existing "$dst" "$src" sudo
         sudo install -m "${SYSTEM_MODES[$rel]:-644}" -o root -g root "$src" "$dst"
         ok "$dst"
     done
@@ -95,35 +90,27 @@ step_system() {
 # ---------------------------------------------------------------------------
 # PASSO: PAM fingerprint (patch IDEMPOTENTE, non sovrascrive il file)
 # ---------------------------------------------------------------------------
-step_pam() {
-    local target="/etc/pam.d/system-auth"
-    info "Configurazione fingerprint + coperchio in $target"
-
-    if [[ ! -x /usr/local/bin/check_lid.sh ]]; then
-        warn "/usr/local/bin/check_lid.sh non presente: esegui prima il passo 'system'."
-        return 1
-    fi
-    if ! pacman -Qq fprintd >/dev/null 2>&1; then
-        warn "pacchetto 'fprintd' non installato: esegui prima il passo 'packages'."
-    fi
-
-    if sudo grep -q "check_lid.sh" "$target"; then
-        ok "PAM già configurato (riga check_lid.sh presente), niente da fare."
+# Inserisce in modo IDEMPOTENTE il blocco impronta (check_lid + fprintd) prima
+# della prima riga che corrisponde all'àncora data. Fa un backup timestampato e
+# un sanity check minimo prima di sostituire il file.
+#   pam_patch_fprint <file> <regex_àncora>
+pam_patch_fprint() {
+    local target="$1" anchor="$2"
+    if [[ ! -e "$target" ]]; then
+        warn "PAM: $target assente, salto."
         return 0
     fi
-
-    echo
-    warn "Sto per modificare un file PAM. Una config errata può bloccare login/sudo."
-    warn "Tieni aperta un'altra shell già autenticata e un TTY (Ctrl+Alt+F3) di sicurezza."
-    confirm "Procedo con la modifica di $target ?" || { skip "PAM saltato su tua richiesta."; return 0; }
+    if sudo grep -q "check_lid.sh" "$target"; then
+        ok "PAM già configurato: $target (niente da fare)."
+        return 0
+    fi
 
     sudo cp -a "$target" "$target.archconfig.bak.$(date +%F-%H%M%S)"
     ok "backup creato: $target.archconfig.bak.*"
 
-    # Inserisce il blocco impronta subito PRIMA della prima riga 'pam_unix.so' in sezione auth.
-    sudo awk '
+    sudo awk -v anchor="$anchor" '
         BEGIN { done=0 }
-        /^auth/ && /pam_unix\.so/ && !done {
+        $0 ~ anchor && !done {
             print "# --- INIZIO LOGICA IMPRONTA (ArchConfig) ---"
             print "# Se check_lid.sh fallisce (coperchio chiuso) salta la riga impronta (default=1)"
             print "auth       [success=ignore default=1]  pam_exec.so quiet /usr/local/bin/check_lid.sh"
@@ -134,15 +121,47 @@ step_pam() {
         { print }
     ' "$target" | sudo tee "$target.new" >/dev/null
 
-    # Sanity check minimo prima di sostituire
-    if sudo grep -q "pam_fprintd.so" "$target.new" && sudo grep -q "pam_unix.so" "$target.new"; then
+    # Sanity check: il blocco impronta dev'essere presente e l'àncora preservata.
+    if sudo grep -q "pam_fprintd.so" "$target.new" && sudo grep -qE "$anchor" "$target.new"; then
         sudo mv "$target.new" "$target"
-        ok "PAM aggiornato. TESTA SUBITO in un'altra shell: 'sudo -k && sudo ls'"
+        ok "PAM aggiornato: $target"
     else
         sudo rm -f "$target.new"
-        err "Sanity check fallito: PAM NON modificato. File invariato."
+        err "Sanity check fallito su $target: file INVARIATO."
         return 1
     fi
+}
+
+step_pam() {
+    info "Configurazione fingerprint + coperchio (PAM)"
+
+    if [[ ! -x /usr/local/bin/check_lid.sh ]]; then
+        warn "/usr/local/bin/check_lid.sh non presente: esegui prima il passo 'system'."
+        return 1
+    fi
+    if ! pacman -Qq fprintd >/dev/null 2>&1; then
+        warn "pacchetto 'fprintd' non installato: esegui prima il passo 'packages'."
+    fi
+
+    # Già configurati entrambi? niente da fare (evita anche il prompt).
+    if sudo grep -q "check_lid.sh" /etc/pam.d/system-auth 2>/dev/null \
+       && sudo grep -q "check_lid.sh" /etc/pam.d/sudo 2>/dev/null; then
+        ok "PAM già configurato (system-auth + sudo), niente da fare."
+        return 0
+    fi
+
+    echo
+    warn "Sto per modificare file PAM. Una config errata può bloccare login/sudo."
+    warn "Tieni aperta un'altra shell già autenticata e un TTY (Ctrl+Alt+F3) di sicurezza."
+    confirm "Procedo con la modifica di /etc/pam.d/{system-auth,sudo} ?" \
+        || { skip "PAM saltato su tua richiesta."; return 0; }
+
+    # system-auth: blocco impronta prima della prima riga 'auth ... pam_unix.so'.
+    pam_patch_fprint /etc/pam.d/system-auth '^auth.*pam_unix\.so'
+    # sudo: blocco impronta prima della riga 'auth ... include system-auth'.
+    pam_patch_fprint /etc/pam.d/sudo '^auth.*include.*system-auth'
+
+    ok "PAM aggiornato. TESTA SUBITO in un'altra shell: 'sudo -k && sudo ls'"
 }
 
 # ---------------------------------------------------------------------------
@@ -154,9 +173,7 @@ step_theming() {
         local src="$REPO/home/$rel" dst="$HOME/$rel"
         [[ -e "$src" ]] || { skip "non nel repo: $rel"; continue; }
         mkdir -p "$(dirname "$dst")"
-        if [[ -e "$dst" ]] && ! cmp -s "$src" "$dst"; then
-            cp -a "$dst" "$dst.archconfig.bak"
-        fi
+        backup_existing "$dst" "$src"
         cp -a "$src" "$dst"
         ok "$rel"
     done
@@ -233,6 +250,8 @@ steps=("$@")
 info "ArchConfig bootstrap — passi: ${steps[*]}"
 echo
 for s in "${steps[@]}"; do
+    # '|| warn' evita che un return!=0 di uno step (es. flatpak/pam non pronti)
+    # abortisca l'intero script per via di 'set -e': si prosegue col prossimo.
     case "$s" in
         packages) step_packages ;;
         flatpak)  step_flatpak ;;
@@ -241,7 +260,7 @@ for s in "${steps[@]}"; do
         theming)  step_theming ;;
         services) step_services ;;
         *) err "passo sconosciuto: $s (validi: ${ALL_STEPS[*]})"; exit 1 ;;
-    esac
+    esac || warn "passo '$s' terminato con errori — proseguo."
     echo
 done
 ok "Fatto. Riavvia o esegui logout/login per applicare tutto."

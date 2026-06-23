@@ -27,6 +27,64 @@ confirm() {
     [[ "$reply" =~ ^[sSyY]$ ]]
 }
 
+# --- Helper condivisi ------------------------------------------------------
+
+# Salva una copia .bak TIMESTAMPATA del file di destinazione, solo se esiste
+# e differisce dalla sorgente. Il 3° argomento ("sudo") forza i privilegi.
+#   backup_existing <dst> <src> [sudo]
+backup_existing() {
+    local dst="$1" src="$2" pfx="${3:-}"
+    $pfx test -e "$dst" || return 0
+    $pfx cmp -s "$src" "$dst" && return 0   # identico: nessun backup
+    local bak="$dst.archconfig.bak.$(date +%F-%H%M%S)"
+    $pfx cp -a "$dst" "$bak" && warn "backup creato: $bak"
+}
+
+# Installa una lista di pacchetti. Prima prova in blocco (veloce); se il batch
+# fallisce (es. un pacchetto non più nei repo), ripiega su installazione
+# singola così uno mancante non blocca tutti gli altri, e riporta i falliti.
+#   install_pkglist <descrizione> <file_lista> <installer...>
+install_pkglist() {
+    local desc="$1" file="$2"; shift 2
+    local installer=("$@")
+    if [[ ! -s "$file" ]]; then
+        warn "$desc: lista vuota o assente ($file)"; return 0
+    fi
+    local pkgs=()
+    mapfile -t pkgs < <(grep -vE '^\s*#|^\s*$' "$file")
+    (( ${#pkgs[@]} )) || { warn "$desc: nessun pacchetto in lista"; return 0; }
+
+    if "${installer[@]}" "${pkgs[@]}"; then
+        ok "$desc: installati (${#pkgs[@]})"
+        return 0
+    fi
+
+    warn "$desc: installazione in blocco fallita, ritento singolarmente…"
+    local p failed=()
+    for p in "${pkgs[@]}"; do
+        "${installer[@]}" "$p" >/dev/null 2>&1 || failed+=("$p")
+    done
+    if (( ${#failed[@]} )); then
+        warn "$desc: NON installati (${#failed[@]}): ${failed[*]}"
+    else
+        ok "$desc: installati singolarmente"
+    fi
+}
+
+# Scrive l'output di un comando in un file in modo ATOMICO (tmp + mv): se il
+# comando fallisce, il file esistente NON viene troncato a zero byte.
+#   write_atomic <file> <comando...>
+write_atomic() {
+    local file="$1"; shift
+    local tmp="$file.tmp"
+    if "$@" > "$tmp"; then
+        mv "$tmp" "$file"
+    else
+        rm -f "$tmp"
+        return 1
+    fi
+}
+
 # --- Percorsi --------------------------------------------------------------
 # REPO = cartella che contiene questo script/../  (root del repo)
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -46,8 +104,8 @@ SYSTEM_FILES=(
     "usr/local/bin/check_lid.sh"
 )
 
-# File PAM: tracciati per BACKUP/riferimento, ma il ripristino NON avviene
-# per sovrascrittura (pericoloso) bensì tramite patch idempotente. Vedi pam_*.
+# File PAM: il ripristino NON avviene per sovrascrittura (pericoloso) bensì
+# tramite patch idempotente in step_pam (sia system-auth che sudo). Vedi pam_*.
 PAM_FILES=(
     "etc/pam.d/system-auth"
     "etc/pam.d/sudo"
