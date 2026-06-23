@@ -41,6 +41,7 @@ export REPO
 SYSTEM_FILES=(
     "etc/plasmalogin.conf"
     "etc/tlp.conf"
+    "etc/tlp.d/10-flower.conf"
     "etc/systemd/logind.conf.d/10-clamshell-docked.conf"
     "usr/local/bin/check_lid.sh"
 )
