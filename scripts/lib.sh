@@ -2,6 +2,10 @@
 # Libreria condivisa per install.sh e backup.sh
 # Contiene: helper di output, rilevamento root repo, e il MANIFEST dei file tracciati.
 
+# Le variabili del MANIFEST (SYSTEM_FILES, HOME_FILES, ...) sono usate dagli
+# script che fanno 'source' di questo file, non qui dentro: silenzia SC2034.
+# shellcheck disable=SC2034
+
 set -euo pipefail
 
 # --- Output colorato -------------------------------------------------------
@@ -36,7 +40,8 @@ backup_existing() {
     local dst="$1" src="$2" pfx="${3:-}"
     $pfx test -e "$dst" || return 0
     $pfx cmp -s "$src" "$dst" && return 0   # identico: nessun backup
-    local bak="$dst.archconfig.bak.$(date +%F-%H%M%S)"
+    local bak
+    bak="$dst.archconfig.bak.$(date +%F-%H%M%S)"
     $pfx cp -a "$dst" "$bak" && warn "backup creato: $bak"
 }
 

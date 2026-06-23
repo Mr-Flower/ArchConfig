@@ -59,9 +59,11 @@ step_flatpak() {
         mapfile -t apps < <(grep -vE '^\s*#|^\s*$' "$REPO/packages/flatpak.txt")
         if (( ${#apps[@]} )); then
             # Installa in blocco; gli ID già presenti vengono semplicemente saltati.
-            flatpak install -y --noninteractive flathub "${apps[@]}" \
-                && ok "app Flatpak installate (${#apps[@]})" \
-                || warn "alcune app Flatpak potrebbero non essere state installate"
+            if flatpak install -y --noninteractive flathub "${apps[@]}"; then
+                ok "app Flatpak installate (${#apps[@]})"
+            else
+                warn "alcune app Flatpak potrebbero non essere state installate"
+            fi
         else
             warn "packages/flatpak.txt non contiene app"
         fi
@@ -232,7 +234,11 @@ step_services() {
     local svcs=(tlp.service tlp-pd.service bluetooth.service tailscaled.service)
     for s in "${svcs[@]}"; do
         if systemctl list-unit-files "$s" >/dev/null 2>&1; then
-            sudo systemctl enable --now "$s" 2>/dev/null && ok "$s" || warn "non abilitato: $s"
+            if sudo systemctl enable --now "$s" 2>/dev/null; then
+                ok "$s"
+            else
+                warn "non abilitato: $s"
+            fi
         else
             skip "non installato: $s"
         fi

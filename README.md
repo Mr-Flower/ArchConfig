@@ -814,3 +814,15 @@ Per tracciare un nuovo file basta aggiungerlo all'array giusto e rilanciare `./b
 
 - [ ] `inputactions-kwin` (gesti touchpad) — valutare se versionarne la config
 - [ ] override clamshell `logind` non ancora applicato sul sistema (è già nella repo, lo applica `./install.sh system`)
+
+## Licenza
+
+Distribuito sotto licenza **GNU General Public License v3.0** — vedi il file [`LICENSE`](LICENSE).
+
+## Sviluppo
+
+Gli script bash sono lintati con [ShellCheck](https://www.shellcheck.net/):
+
+```bash
+shellcheck -x install.sh backup.sh scripts/lib.sh
+```

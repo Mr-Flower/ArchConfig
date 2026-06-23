@@ -44,16 +44,22 @@ done
 info "Aggiorno liste pacchetti"
 # Scrittura atomica (tmp + mv): se il comando fallisce il file NON viene
 # troncato a zero byte, così non si perde la lista precedente.
-write_atomic "$REPO/packages/pacman.txt" pacman -Qqen \
-    && ok "packages/pacman.txt ($(wc -l < "$REPO/packages/pacman.txt"))" \
-    || err "aggiornamento pacman.txt fallito (lista precedente preservata)"
-write_atomic "$REPO/packages/aur.txt" pacman -Qqem \
-    && ok "packages/aur.txt ($(wc -l < "$REPO/packages/aur.txt"))" \
-    || err "aggiornamento aur.txt fallito (lista precedente preservata)"
+if write_atomic "$REPO/packages/pacman.txt" pacman -Qqen; then
+    ok "packages/pacman.txt ($(wc -l < "$REPO/packages/pacman.txt"))"
+else
+    err "aggiornamento pacman.txt fallito (lista precedente preservata)"
+fi
+if write_atomic "$REPO/packages/aur.txt" pacman -Qqem; then
+    ok "packages/aur.txt ($(wc -l < "$REPO/packages/aur.txt"))"
+else
+    err "aggiornamento aur.txt fallito (lista precedente preservata)"
+fi
 if command -v flatpak >/dev/null; then
-    write_atomic "$REPO/packages/flatpak.txt" flatpak list --app --columns=application \
-        && ok "packages/flatpak.txt ($(wc -l < "$REPO/packages/flatpak.txt"))" \
-        || err "aggiornamento flatpak.txt fallito (lista precedente preservata)"
+    if write_atomic "$REPO/packages/flatpak.txt" flatpak list --app --columns=application; then
+        ok "packages/flatpak.txt ($(wc -l < "$REPO/packages/flatpak.txt"))"
+    else
+        err "aggiornamento flatpak.txt fallito (lista precedente preservata)"
+    fi
 else
     skip "flatpak non installato, salto flatpak.txt"
 fi
